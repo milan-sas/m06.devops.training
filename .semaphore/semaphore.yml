@@ -60,9 +60,11 @@ blocks:
       jobs:
         - name: s3 operations
           commands:
-            - aws s3 cp 1-terraform-apply/README.md s3://bucket-mcbucket/ --endpoint-url http://devops.tomfern.com:31566
-            - aws s3 ls s3://bucket-mcbucket --endpoint-url http://devops.tomfern.com:31566
-            - aws s3 rm s3://bucket-mcbucket/README.md --endpoint-url http://devops.tomfern.com:31566
+            - export AWS_ENDPOINT_URL=http://devops.tomfern.com:31566
+            - export AWS_DEFAULT_REGION=us-east-1
+            - aws s3 cp 1-terraform-apply/README.md s3://bucket-mcbucket/
+            - aws s3 ls s3://bucket-mcbucket
+            - aws s3 rm s3://bucket-mcbucket/README.md
 
   - name: Destroy
     dependencies:
