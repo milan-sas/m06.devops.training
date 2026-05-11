@@ -41,6 +41,7 @@ blocks:
             - cd 1-terraform-apply
             - artifact pull workflow .terraform
             - artifact pull workflow .terraform.lock.hcl
+            - chmod -R +x .terraform/providers/
             - export TF_VAR_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
             - export TF_VAR_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
             - export TF_VAR_AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
@@ -72,6 +73,7 @@ blocks:
             - artifact pull workflow .terraform
             - artifact pull workflow .terraform.lock.hcl
             - artifact pull workflow terraform.tfstate
+            - chmod -R +x .terraform/providers/
             - export TF_VAR_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
             - export TF_VAR_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
             - export TF_VAR_AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
