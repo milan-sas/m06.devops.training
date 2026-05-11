@@ -56,12 +56,12 @@ blocks:
       jobs:
         - name: s3 operations
           commands:
-            - 'aws s3 cp 1-terraform-apply/README.md s3://my-test-bucket/ --endpoint-url http://devops.tomfern.com:31566'
-            - 'aws s3 ls s3://my-test-bucket --endpoint-url http://devops.tomfern.com:31566'
-            - 'aws s3 rm s3://my-test-bucket/README.md --endpoint-url http://devops.tomfern.com:31566'
-  - name: Destroy
-    dependencies:
-      - Use Bucket
+            - aws s3 cp 1-terraform-apply/README.md s3://Bucket-McBucket/ --endpoint-url http://devops.tomfern.com:31566
+            - aws s3 ls s3://Bucket-McBucket --endpoint-url http://devops.tomfern.com:31566
+            - aws s3 rm s3://Bucket-McBucket/README.md --endpoint-url http://devops.tomfern.com:31566
+
+  - name: "Destroy"
+    dependencies: ["Use Bucket"]
     task:
       secrets:
         - name: localstack
