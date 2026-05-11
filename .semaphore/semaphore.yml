@@ -61,7 +61,7 @@ blocks:
             - 'export TF_VAR_AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"'
             - 'export TF_VAR_aws_endpoint="http://localhost:4566"'
             - terraform apply -no-color -auto-approve
-            - artifact push workflow terraform.tfstate
+            - artifact push workflow terraform.tfstate --force
   - name: Use Bucket
     dependencies:
       - Deploy
@@ -92,7 +92,7 @@ blocks:
             - 'aws --endpoint-url=http://localhost:4566 s3 cp README.md s3://bucket-mcbucket/'
             - 'aws --endpoint-url=http://localhost:4566 s3 ls s3://bucket-mcbucket'
             - 'aws --endpoint-url=http://localhost:4566 s3 rm s3://bucket-mcbucket/README.md'
-            - artifact push workflow terraform.tfstate
+            - artifact push workflow terraform.tfstate --force
   - name: Destroy
     dependencies:
       - Use Bucket
