@@ -1,5 +1,5 @@
 version: v1.0
-name: Terraform S3 Exercise
+name: Terraform Exercises
 agent:
   machine:
     type: f1-standard-4
@@ -16,8 +16,10 @@ global_job_config:
   prologue:
     commands:
       - checkout
+
 blocks:
-  - name: Initialize
+  # ── Exercise 1: S3 Bucket ────────────────────────────────────────────────
+  - name: "Ex1: Initialize"
     dependencies: []
     task:
       secrets:
@@ -27,20 +29,21 @@ blocks:
           commands:
             - cd 1-terraform-apply
             - docker rm -f localstack >/dev/null 2>&1 || true
-            - 'docker run -d --name localstack -p 4566:4566 -e SERVICES=s3,sts,iam,ec2,sqs,sns localstack/localstack:3'
+            - docker run -d --name localstack -p 4566:4566 -e SERVICES=s3,sts,iam,ec2,sqs,sns localstack/localstack:3
             - export TF_INPUT=0
             - 'export TF_VAR_AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-test}"'
             - 'export TF_VAR_AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-test}"'
             - 'export TF_VAR_AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"'
-            - 'export TF_VAR_aws_endpoint="http://localhost:4566"'
+            - export TF_VAR_aws_endpoint="http://localhost:4566"
             - terraform init
             - terraform validate
             - tar czf terraform-plugins.tar.gz .terraform
-            - artifact push workflow terraform-plugins.tar.gz
-            - artifact push workflow .terraform.lock.hcl
-  - name: Deploy
+            - artifact push workflow terraform-plugins.tar.gz --destination ex1/terraform-plugins.tar.gz
+            - artifact push workflow .terraform.lock.hcl --destination ex1/terraform.lock.hcl
+
+  - name: "Ex1: Deploy"
     dependencies:
-      - Initialize
+      - "Ex1: Initialize"
     task:
       secrets:
         - name: localstack
@@ -49,22 +52,23 @@ blocks:
           commands:
             - cd 1-terraform-apply
             - docker rm -f localstack >/dev/null 2>&1 || true
-            - 'docker run -d --name localstack -p 4566:4566 -e SERVICES=s3,sts,iam,ec2,sqs,sns localstack/localstack:3'
+            - docker run -d --name localstack -p 4566:4566 -e SERVICES=s3,sts,iam,ec2,sqs,sns localstack/localstack:3
             - sleep 20
-            - 'curl -fsS http://localhost:4566/_localstack/health'
-            - artifact pull workflow terraform-plugins.tar.gz
-            - artifact pull workflow .terraform.lock.hcl
+            - curl -fsS http://localhost:4566/_localstack/health
+            - artifact pull workflow ex1/terraform-plugins.tar.gz --destination terraform-plugins.tar.gz
+            - artifact pull workflow ex1/terraform.lock.hcl --destination .terraform.lock.hcl
             - tar xzf terraform-plugins.tar.gz
             - export TF_INPUT=0
             - 'export TF_VAR_AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-test}"'
             - 'export TF_VAR_AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-test}"'
             - 'export TF_VAR_AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"'
-            - 'export TF_VAR_aws_endpoint="http://localhost:4566"'
+            - export TF_VAR_aws_endpoint="http://localhost:4566"
             - terraform apply -no-color -auto-approve
-            - artifact push workflow terraform.tfstate --force
-  - name: Use Bucket
+            - artifact push workflow terraform.tfstate --destination ex1/terraform.tfstate
+
+  - name: "Ex1: Use Bucket"
     dependencies:
-      - Deploy
+      - "Ex1: Deploy"
     task:
       secrets:
         - name: localstack
@@ -73,29 +77,30 @@ blocks:
           commands:
             - cd 1-terraform-apply
             - docker rm -f localstack >/dev/null 2>&1 || true
-            - 'docker run -d --name localstack -p 4566:4566 -e SERVICES=s3,sts,iam,ec2,sqs,sns localstack/localstack:3'
+            - docker run -d --name localstack -p 4566:4566 -e SERVICES=s3,sts,iam,ec2,sqs,sns localstack/localstack:3
             - sleep 20
-            - 'curl -fsS http://localhost:4566/_localstack/health'
-            - artifact pull workflow terraform-plugins.tar.gz
-            - artifact pull workflow .terraform.lock.hcl
-            - artifact pull workflow terraform.tfstate --force
+            - curl -fsS http://localhost:4566/_localstack/health
+            - artifact pull workflow ex1/terraform-plugins.tar.gz --destination terraform-plugins.tar.gz
+            - artifact pull workflow ex1/terraform.lock.hcl --destination .terraform.lock.hcl
+            - artifact pull workflow ex1/terraform.tfstate --destination terraform.tfstate --force
             - tar xzf terraform-plugins.tar.gz
             - export TF_INPUT=0
             - 'export TF_VAR_AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-test}"'
             - 'export TF_VAR_AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-test}"'
             - 'export TF_VAR_AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"'
-            - 'export TF_VAR_aws_endpoint="http://localhost:4566"'
+            - export TF_VAR_aws_endpoint="http://localhost:4566"
             - 'export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-test}"'
             - 'export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-test}"'
             - 'export AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"'
             - terraform apply -no-color -auto-approve
-            - 'aws --endpoint-url=http://localhost:4566 s3 cp README.md s3://bucket-mcbucket/'
-            - 'aws --endpoint-url=http://localhost:4566 s3 ls s3://bucket-mcbucket'
-            - 'aws --endpoint-url=http://localhost:4566 s3 rm s3://bucket-mcbucket/README.md'
-            - artifact push workflow terraform.tfstate --force
-  - name: Destroy
+            - aws --endpoint-url=http://localhost:4566 s3 cp README.md s3://bucket-mcbucket/
+            - aws --endpoint-url=http://localhost:4566 s3 ls s3://bucket-mcbucket
+            - aws --endpoint-url=http://localhost:4566 s3 rm s3://bucket-mcbucket/README.md
+            - artifact push workflow terraform.tfstate --destination ex1/terraform.tfstate --force
+
+  - name: "Ex1: Destroy"
     dependencies:
-      - Use Bucket
+      - "Ex1: Use Bucket"
     task:
       secrets:
         - name: localstack
@@ -104,17 +109,200 @@ blocks:
           commands:
             - cd 1-terraform-apply
             - docker rm -f localstack >/dev/null 2>&1 || true
-            - 'docker run -d --name localstack -p 4566:4566 -e SERVICES=s3,sts,iam,ec2,sqs,sns localstack/localstack:3'
+            - docker run -d --name localstack -p 4566:4566 -e SERVICES=s3,sts,iam,ec2,sqs,sns localstack/localstack:3
             - sleep 20
-            - 'curl -fsS http://localhost:4566/_localstack/health'
-            - artifact pull workflow terraform-plugins.tar.gz
-            - artifact pull workflow .terraform.lock.hcl
-            - artifact pull workflow terraform.tfstate --force
+            - curl -fsS http://localhost:4566/_localstack/health
+            - artifact pull workflow ex1/terraform-plugins.tar.gz --destination terraform-plugins.tar.gz
+            - artifact pull workflow ex1/terraform.lock.hcl --destination .terraform.lock.hcl
+            - artifact pull workflow ex1/terraform.tfstate --destination terraform.tfstate --force
             - tar xzf terraform-plugins.tar.gz
             - export TF_INPUT=0
             - 'export TF_VAR_AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-test}"'
             - 'export TF_VAR_AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-test}"'
             - 'export TF_VAR_AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"'
-            - 'export TF_VAR_aws_endpoint="http://localhost:4566"'
+            - export TF_VAR_aws_endpoint="http://localhost:4566"
+            - terraform apply -no-color -auto-approve
+            - terraform destroy -no-color -auto-approve
+
+  # ── Exercise 2: EC2 Instance ─────────────────────────────────────────────
+  - name: "Ex2: Initialize"
+    dependencies:
+      - "Ex1: Destroy"
+    task:
+      secrets:
+        - name: localstack
+      jobs:
+        - name: terraform init + validate
+          commands:
+            - cd 2-terraform-ec2
+            - docker rm -f localstack >/dev/null 2>&1 || true
+            - docker run -d --name localstack -p 4566:4566 -e SERVICES=s3,sts,iam,ec2,sqs,sns localstack/localstack:3
+            - export TF_INPUT=0
+            - 'export TF_VAR_AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-test}"'
+            - 'export TF_VAR_AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-test}"'
+            - 'export TF_VAR_AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"'
+            - export TF_VAR_aws_endpoint="http://localhost:4566"
+            - terraform init
+            - terraform validate
+            - tar czf terraform-plugins.tar.gz .terraform
+            - artifact push workflow terraform-plugins.tar.gz --destination ex2/terraform-plugins.tar.gz
+            - artifact push workflow .terraform.lock.hcl --destination ex2/terraform.lock.hcl
+
+  - name: "Ex2: Deploy"
+    dependencies:
+      - "Ex2: Initialize"
+    task:
+      secrets:
+        - name: localstack
+      jobs:
+        - name: terraform apply
+          commands:
+            - cd 2-terraform-ec2
+            - docker rm -f localstack >/dev/null 2>&1 || true
+            - docker run -d --name localstack -p 4566:4566 -e SERVICES=s3,sts,iam,ec2,sqs,sns localstack/localstack:3
+            - sleep 20
+            - curl -fsS http://localhost:4566/_localstack/health
+            - artifact pull workflow ex2/terraform-plugins.tar.gz --destination terraform-plugins.tar.gz
+            - artifact pull workflow ex2/terraform.lock.hcl --destination .terraform.lock.hcl
+            - tar xzf terraform-plugins.tar.gz
+            - export TF_INPUT=0
+            - 'export TF_VAR_AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-test}"'
+            - 'export TF_VAR_AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-test}"'
+            - 'export TF_VAR_AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"'
+            - export TF_VAR_aws_endpoint="http://localhost:4566"
+            - terraform apply -no-color -auto-approve
+            - artifact push workflow terraform.tfstate --destination ex2/terraform.tfstate
+
+  - name: "Ex2: Destroy"
+    dependencies:
+      - "Ex2: Deploy"
+    task:
+      secrets:
+        - name: localstack
+      jobs:
+        - name: terraform destroy
+          commands:
+            - cd 2-terraform-ec2
+            - docker rm -f localstack >/dev/null 2>&1 || true
+            - docker run -d --name localstack -p 4566:4566 -e SERVICES=s3,sts,iam,ec2,sqs,sns localstack/localstack:3
+            - sleep 20
+            - curl -fsS http://localhost:4566/_localstack/health
+            - artifact pull workflow ex2/terraform-plugins.tar.gz --destination terraform-plugins.tar.gz
+            - artifact pull workflow ex2/terraform.lock.hcl --destination .terraform.lock.hcl
+            - artifact pull workflow ex2/terraform.tfstate --destination terraform.tfstate
+            - tar xzf terraform-plugins.tar.gz
+            - export TF_INPUT=0
+            - 'export TF_VAR_AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-test}"'
+            - 'export TF_VAR_AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-test}"'
+            - 'export TF_VAR_AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"'
+            - export TF_VAR_aws_endpoint="http://localhost:4566"
+            - terraform apply -no-color -auto-approve
+            - terraform destroy -no-color -auto-approve
+
+  # ── Exercise 3: DynamoDB Table ───────────────────────────────────────────
+  - name: "Ex3: Initialize"
+    dependencies:
+      - "Ex2: Destroy"
+    task:
+      secrets:
+        - name: localstack
+      jobs:
+        - name: terraform init + validate
+          commands:
+            - cd 3-terraform-dynamodb
+            - docker rm -f localstack >/dev/null 2>&1 || true
+            - docker run -d --name localstack -p 4566:4566 -e SERVICES=s3,sts,iam,ec2,sqs,sns,dynamodb localstack/localstack:3
+            - export TF_INPUT=0
+            - 'export TF_VAR_AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-test}"'
+            - 'export TF_VAR_AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-test}"'
+            - 'export TF_VAR_AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"'
+            - export TF_VAR_aws_endpoint="http://localhost:4566"
+            - terraform init
+            - terraform validate
+            - tar czf terraform-plugins.tar.gz .terraform
+            - artifact push workflow terraform-plugins.tar.gz --destination ex3/terraform-plugins.tar.gz
+            - artifact push workflow .terraform.lock.hcl --destination ex3/terraform.lock.hcl
+
+  - name: "Ex3: Deploy"
+    dependencies:
+      - "Ex3: Initialize"
+    task:
+      secrets:
+        - name: localstack
+      jobs:
+        - name: terraform apply
+          commands:
+            - cd 3-terraform-dynamodb
+            - docker rm -f localstack >/dev/null 2>&1 || true
+            - docker run -d --name localstack -p 4566:4566 -e SERVICES=s3,sts,iam,ec2,sqs,sns,dynamodb localstack/localstack:3
+            - sleep 20
+            - curl -fsS http://localhost:4566/_localstack/health
+            - artifact pull workflow ex3/terraform-plugins.tar.gz --destination terraform-plugins.tar.gz
+            - artifact pull workflow ex3/terraform.lock.hcl --destination .terraform.lock.hcl
+            - tar xzf terraform-plugins.tar.gz
+            - export TF_INPUT=0
+            - 'export TF_VAR_AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-test}"'
+            - 'export TF_VAR_AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-test}"'
+            - 'export TF_VAR_AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"'
+            - export TF_VAR_aws_endpoint="http://localhost:4566"
+            - terraform apply -no-color -auto-approve
+            - artifact push workflow terraform.tfstate --destination ex3/terraform.tfstate
+
+  - name: "Ex3: Use Table"
+    dependencies:
+      - "Ex3: Deploy"
+    task:
+      secrets:
+        - name: localstack
+      jobs:
+        - name: dynamodb operations
+          commands:
+            - cd 3-terraform-dynamodb
+            - docker rm -f localstack >/dev/null 2>&1 || true
+            - docker run -d --name localstack -p 4566:4566 -e SERVICES=s3,sts,iam,ec2,sqs,sns,dynamodb localstack/localstack:3
+            - sleep 20
+            - curl -fsS http://localhost:4566/_localstack/health
+            - artifact pull workflow ex3/terraform-plugins.tar.gz --destination terraform-plugins.tar.gz
+            - artifact pull workflow ex3/terraform.lock.hcl --destination .terraform.lock.hcl
+            - artifact pull workflow ex3/terraform.tfstate --destination terraform.tfstate
+            - tar xzf terraform-plugins.tar.gz
+            - export TF_INPUT=0
+            - 'export TF_VAR_AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-test}"'
+            - 'export TF_VAR_AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-test}"'
+            - 'export TF_VAR_AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"'
+            - export TF_VAR_aws_endpoint="http://localhost:4566"
+            - 'export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-test}"'
+            - 'export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-test}"'
+            - 'export AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"'
+            - terraform apply -no-color -auto-approve
+            - aws --endpoint-url=http://localhost:4566 dynamodb list-tables
+            - aws --endpoint-url=http://localhost:4566 dynamodb describe-table --table-name devops-training-table
+            - "aws --endpoint-url=http://localhost:4566 dynamodb put-item --table-name devops-training-table --item '{\"user_id\": {\"S\": \"u1\"}, \"name\": {\"S\": \"Alice\"}, \"email\": {\"S\": \"alice@example.com\"}}'"
+            - aws --endpoint-url=http://localhost:4566 dynamodb scan --table-name devops-training-table
+            - artifact push workflow terraform.tfstate --destination ex3/terraform.tfstate --force
+
+  - name: "Ex3: Destroy"
+    dependencies:
+      - "Ex3: Use Table"
+    task:
+      secrets:
+        - name: localstack
+      jobs:
+        - name: terraform destroy
+          commands:
+            - cd 3-terraform-dynamodb
+            - docker rm -f localstack >/dev/null 2>&1 || true
+            - docker run -d --name localstack -p 4566:4566 -e SERVICES=s3,sts,iam,ec2,sqs,sns,dynamodb localstack/localstack:3
+            - sleep 20
+            - curl -fsS http://localhost:4566/_localstack/health
+            - artifact pull workflow ex3/terraform-plugins.tar.gz --destination terraform-plugins.tar.gz
+            - artifact pull workflow ex3/terraform.lock.hcl --destination .terraform.lock.hcl
+            - artifact pull workflow ex3/terraform.tfstate --destination terraform.tfstate
+            - tar xzf terraform-plugins.tar.gz
+            - export TF_INPUT=0
+            - 'export TF_VAR_AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-test}"'
+            - 'export TF_VAR_AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-test}"'
+            - 'export TF_VAR_AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"'
+            - export TF_VAR_aws_endpoint="http://localhost:4566"
             - terraform apply -no-color -auto-approve
             - terraform destroy -no-color -auto-approve
