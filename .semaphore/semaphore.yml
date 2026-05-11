@@ -32,8 +32,6 @@ blocks:
             - 'export TF_VAR_AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-test}"'
             - 'export TF_VAR_AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"'
             - export TF_VAR_aws_endpoint="http://localhost:4566"
-            - export TF_PLUGIN_CACHE_DIR=/tmp/tf-plugin-cache
-            - mkdir -p $TF_PLUGIN_CACHE_DIR
             - cd 1-terraform-apply && terraform init && terraform validate && cd ..
             - cd 2-terraform-ec2 && terraform init && terraform validate && cd ..
             - cd 3-terraform-dynamodb && terraform init && terraform validate && cd ..
