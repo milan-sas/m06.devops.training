@@ -79,7 +79,7 @@ blocks:
             - curl -fsS http://localhost:4566/_localstack/health
             - artifact pull workflow terraform-plugins.tar.gz
             - artifact pull workflow .terraform.lock.hcl
-            - artifact pull workflow terraform.tfstate
+            - artifact pull workflow terraform.tfstate --force
             - tar xzf terraform-plugins.tar.gz
             - export TF_INPUT=0
             - export TF_VAR_AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-test}"
@@ -112,7 +112,7 @@ blocks:
             - curl -fsS http://localhost:4566/_localstack/health
             - artifact pull workflow terraform-plugins.tar.gz
             - artifact pull workflow .terraform.lock.hcl
-            - artifact pull workflow terraform.tfstate
+            - artifact pull workflow terraform.tfstate --force
             - tar xzf terraform-plugins.tar.gz
             - export TF_INPUT=0
             - export TF_VAR_AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-test}"
